@@ -13,6 +13,9 @@ import time
 import hashlib
 import requests
 import cloudscraper
+import urllib3
+urllib3.disable_warnings()
+
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
 from dataclasses import dataclass
@@ -102,16 +105,18 @@ def make_id(url: str) -> str:
     return hashlib.sha1(url.encode()).hexdigest()
 
 
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
+
 def fetch_html(url: str) -> str:
-    if "zonaprop" in url:
-        scraper = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "windows", "mobile": False}
-        )
-        resp = scraper.get(url, timeout=30)
+    if "zonaprop" in url and SCRAPERAPI_KEY:
+        proxy_url = f"http://scraperapi:{SCRAPERAPI_KEY}@proxy-server.scraperapi.com:8001"
+        proxies = {"http": proxy_url, "https": proxy_url}
+        resp = requests.get(url, proxies=proxies, verify=False, timeout=30)
     else:
         resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     return resp.text
+
 
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
