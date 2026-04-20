@@ -10,6 +10,7 @@ import os
 import time
 import hashlib
 import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
 from dataclasses import dataclass
@@ -102,7 +103,13 @@ def make_id(url: str) -> str:
 
 
 def fetch_html(url: str) -> str:
-    resp = requests.get(url, headers=HEADERS, timeout=20)
+    if "zonaprop" in url:
+        scraper = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "windows", "mobile": False}
+        )
+        resp = scraper.get(url, timeout=30)
+    else:
+        resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     return resp.text
 
