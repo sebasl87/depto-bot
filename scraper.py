@@ -72,6 +72,21 @@ class Listing:
     image_url: Optional[str] = None
 
 
+CABA_BARRIOS = {
+    "palermo", "belgrano", "recoleta", "caballito", "flores", "almagro",
+    "balvanera", "boedo", "chacarita", "coghlan", "colegiales", "constitucion",
+    "floresta", "liniers", "lugano", "mataderos", "monte castro",
+    "montserrat", "nueva pompeya", "nunez", "parque avellaneda",
+    "parque chacabuco", "parque chas", "parque patricios", "paternal",
+    "puerto madero", "retiro", "saavedra", "san cristobal", "san nicolas",
+    "san telmo", "versalles", "villa crespo", "villa del parque",
+    "villa devoto", "villa gral mitre", "villa lugano", "villa luro",
+    "villa ortuzar", "villa pueyrredon", "villa real", "villa riachuelo",
+    "villa santa rita", "villa soldati", "villa urquiza",
+    "capital federal", "caba", "ciudad autonoma", "ciudad de buenos aires",
+}
+
+
 def has_price(price: str) -> bool:
     if not price:
         return False
@@ -79,6 +94,16 @@ def has_price(price: str) -> bool:
     if low in ("", "consultar", "a consultar", "precio a consultar", "-", "—"):
         return False
     return bool(re.search(r"\d", low))
+
+
+def is_caba(location: str) -> bool:
+    loc = location.lower()
+    return any(b in loc for b in CABA_BARRIOS)
+
+
+def meets_min_surface(surface: str, min_m2: int = 30) -> bool:
+    m = re.search(r"(\d+)", surface)
+    return int(m.group(1)) >= min_m2 if m else True
 
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
@@ -221,7 +246,9 @@ def scrape_all() -> list[Listing]:
             print(f"[{source}] HTML snippet: {html[:300].replace(chr(10), ' ')}")
             parse_fn = PARSERS[source]
             found = parse_fn(html)
-            print(f"[{source}] {len(found)} publicaciones con precio")
+            before = len(found)
+            found = [l for l in found if is_caba(l.location) and meets_min_surface(l.surface)]
+            print(f"[{source}] {len(found)} publicaciones válidas (de {before} con precio)")
             results.extend(found)
             time.sleep(3)
         except Exception as e:
